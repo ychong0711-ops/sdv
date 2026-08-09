@@ -56,7 +56,7 @@ jobs:
 
       # Zephyr 공식 셋업 액션: west workspace(init/update) + Zephyr SDK 자동 설치.
       # zephyr-build 컨테이너 방식은 checkout EACCES / SDK 미탐지 문제로 대체.
-      - uses: docker/setup-zephyr@main
+      - uses: zephyrproject-rtos/action-zephyr@main
         with:
           sdk-version: 0.16.5-1
           version: main

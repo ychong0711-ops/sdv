@@ -7,7 +7,8 @@
 
 > **Status (2026-08):** Phase 1 구현 완료 — PC 시뮬레이션(UDP 30490) 검증 완료. Phase 2 Yocto Kirkstone 이미지 빌드 + QEMU 부팅 + Docker 데몬/vsomeipd 실기동 검증 완료. 실보드(UNO Q, UART 터널) 검증 대기 중.
 > **전송 기본값:** 실보드에서는 **UART 터널 (LPUART1, 115200, `/dev/ttyS0`) 기본**, PC 시뮬레이션은 **UDP 30490** (`--transport udp` 또는 `SOMEIP_TRANSPORT=udp`).
-> **CI / Quality:** CI 파이프라인 구축 예정 — 첫 GitHub push 후 결과 갱신 예정 (MISRA/coverage 수치는 아직 측정 전이므로 주장하지 않음).
+> **CI / Quality:** GitHub Actions CI 실행 중 — pytest, cppcheck(일반 품질 검사), Zephyr build, Docker build 통과.
+> MISRA-C 2012는 C 전용 규칙이라 C++(Zephyr) 코드에는 적용하지 않음 — MISRA violation 수치는 주장하지 않음.
 
 ---
 
@@ -160,7 +161,7 @@ docker exec sdv-mpu python3 mpu/ai/trigger_test.py --level 90
 | **Bus** | CAN-FD (500k/2M), ISO-TP, E2E CRC8 | CAN-FD, CAN, ISO 26262 E2E | |
 | **AI** | TensorFlow Lite Micro, OpenCV | TensorFlow, ONNX, ADAS | QRB2210 Adreno GPU 활용 |
 | **Build** | west (Zephyr) + CMake + Docker | CMake, CI/CD, ASPICE | MCU: `west build -b arduino_uno_q MCU` |
-| **Quality** | Cppcheck, Clang-Tidy (MISRA), Gcov | MISRA-C, Tessy, ASPICE | 수치 측정 예정 (CI 구축 후 갱신) |
+| **Quality** | Cppcheck (일반 품질 검사), Gcov | MISRA-C, Tessy, ASPICE | MISRA-C 2012는 C 전용 — C++ Zephyr 코드에는 cppcheck warning/performance/portability 검사 적용 |
 | **Tools** | Wireshark, candump, Segger Ozone (J-Link) | Vector CANoe, Lauterbach TRACE32 | BusMaster 대체 |
 
 ---
@@ -225,17 +226,18 @@ MCU는 MPU를 신뢰하지 않습니다 (Freedom from Interference). **현재 �
 
 ## 7. CI/CD & QUALITY - 독일이 보는 프로세스
 
-**CI 파이프라인 구축 예정** (`.github/workflows/ci.yml` 생성 예정). 첫 GitHub push 후 결과가 갱신될 예정이며, 그 전까지는 MISRA violations / coverage % 같은 수치를 주장하지 않습니다.
+**CI 파이프라인 구축 완료** (`.github/workflows/ci.yml`): pytest, cppcheck(일반 품질), Zephyr build, Docker build.
+MISRA-C 2012는 C 전용 규칙이므로 C++(Zephyr) 코드에는 적용하지 않음 — MISRA violation 수치는 주장하지 않음.
 
 ```yaml
-# .github/workflows/ci.yml (계획)
-# Python 단위 테스트 + cppcheck(MISRA) + Docker build + Zephyr build - ASPICE SWE.4 대응
+# .github/workflows/ci.yml (실행 중)
+# Python 단위 테스트 + cppcheck(일반 품질) + Docker build + Zephyr build - ASPICE SWE.4 대응
 
 - name: Python Unit Tests (mpu/tests/)
   run: pytest mpu/tests/
 
-- name: Static Analysis (MISRA-C 2012) - 예정
-  run: cppcheck --enable=all --addon=misra MCU/src --error-exitcode=1
+- name: Static Analysis (cppcheck - C++ 코드에는 MISRA-C 부적합)
+  run: cppcheck --enable=warning,performance,portability MCU/src --error-exitcode=1
 
 - name: Zephyr Build
   run: west build -b arduino_uno_q MCU
@@ -312,7 +314,7 @@ Yocto layer 구조는 설계 및 실증 완료: `yocto/meta-sdv/recipes-support/
 Heterogeneous SoC (Qualcomm Dragonwing QRB2210 + STM32U585) | Embedded Linux (Debian/Docker, Yocto in progress) |
 Zephyr RTOS | SOME/IP (vsomeip 호환 wire protocol, raw-socket 경량 구현) | CAN-FD | ISO 26262 Safe State | C++17 | Python | TensorFlow Lite |
 Wireshark | CANoe (via BusMaster/candump) | Lauterbach TRACE32 concepts (via Segger Ozone/J-Link) |
-MISRA-C 2012 | CI/CD (GitHub Actions, CMake, Cppcheck) | ASPICE
+| Cppcheck (정적 분석, 일반 품질) | CI/CD (GitHub Actions, CMake, Cppcheck) | ASPICE
 ```
 
 **절대 쓰지 말 것:** Arduino, Sketch, delay, String, App Lab Bridge

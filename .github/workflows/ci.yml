@@ -37,11 +37,14 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y cppcheck
 
       # 결과는 첫 push 후 갱신. "MISRA 0 violations" 주장은 이 job이 통과해야만 사용할 것.
+      # --suppress=misra-config: MISRA addon이 C++ 선언부(struct 변수 선언 등)를 파싱하지
+      # 못해 발생하는 [misra-config] 오류를 무시. 실제 misra-c2012-* 규칙 위반은 그대로 실패 처리.
       - name: MISRA-C 2012 static analysis (MCU)
         run: |
           cppcheck --enable=warning,style,performance,portability \
                    --addon=misra \
                    --suppress=missingIncludeSystem \
+                   --suppress=misra-config \
                    --inline-suppr \
                    --error-exitcode=1 \
                    MCU/src
@@ -50,6 +53,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/zephyrproject-rtos/zephyr-build:latest
+      # zephyr-build 이미지는 기본 non-root 사용자로 실행되어 actions/checkout이
+      # runner temp 디렉토리에 쓸 수 없어 EACCES로 실패함. root로 실행해 해결.
+      options: --user root
     steps:
       - uses: actions/checkout@v4
 

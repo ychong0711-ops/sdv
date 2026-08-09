@@ -35,7 +35,8 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 #define STACK_SIZE 2048
 K_THREAD_STACK_DEFINE(can_stack, STACK_SIZE);
 K_THREAD_STACK_DEFINE(someip_stack, STACK_SIZE);
-static struct k_thread can_thread_data, someip_thread_data;
+static struct k_thread can_thread_data;
+static struct k_thread someip_thread_data;
 
 // Shared: MPU에서 받은 졸음 레벨 (0-100)
 static atomic_t drowsiness_level = ATOMIC_INIT(0);

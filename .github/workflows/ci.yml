@@ -51,19 +51,30 @@ jobs:
 
   mcu-build:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/zephyrproject-rtos/zephyr-build:latest
+      # zephyr-build 이미지는 기본 non-root 사용자로 실행되어 actions/checkout이
+      # runner temp 디렉토리에 쓸 수 없어 EACCES로 실패함. root로 실행해 해결.
+      options: --user root
     steps:
       - uses: actions/checkout@v4
 
-      # Zephyr 공식 셋업 액션: west workspace(init/update) + Zephyr SDK 자동 설치.
-      # zephyr-build 컨테이너 방식은 checkout EACCES / SDK 미탐지 문제로 대체.
-      - uses: zephyrproject-rtos/action-zephyr@main
-        with:
-          sdk-version: 0.16.5-1
-          version: main
+      # 보드 지원이 포함된 Zephyr 릴리스 확인 후 --mr을 태그로 고정 권장.
+      # 현재는 upstream main의 arduino_uno_q 보드 정의 사용.
+      - name: Init Zephyr workspace
+        run: |
+          west init -m https://github.com/zephyrproject-rtos/zephyr --mr main zephyrproject
+          cd zephyrproject
+          west update
 
       - name: Build MCU app
         run: |
-          west build -b arduino_uno_q MCU
+          # zephyr-build 컨테이너에 설치된 SDK를 west가 자동으로 못 찾는 경우가 있어
+          # ZEPHYR_SDK_INSTALL_DIR을 명시적으로 지정
+          ls -d /opt/toolchains/zephyr-sdk-* 2>/dev/null || echo "no /opt/toolchains"
+          export ZEPHYR_SDK_INSTALL_DIR=$(ls -d /opt/toolchains/zephyr-sdk-* 2>/dev/null | head -1)
+          cd zephyrproject
+          west build -b arduino_uno_q ../MCU
 
   docker-build:
     runs-on: ubuntu-latest

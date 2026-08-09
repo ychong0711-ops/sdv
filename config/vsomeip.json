@@ -1,0 +1,36 @@
+{
+  "unicast": "192.168.7.1",
+  "netmask": "255.255.255.0",
+  "logging": {
+    "level": "debug",
+    "console": "true",
+    "file": { "enable": "false" },
+    "dlt": "false"
+  },
+  "applications": [
+    {
+      "name": "mpu-client",
+      "id": "0x1001"
+    },
+    {
+      "name": "mcu-service",
+      "id": "0x1002"
+    }
+  ],
+  "services": [
+    {
+      "service": "0x1234",
+      "instance": "0x5678",
+      "unreliable": "30490",
+      "reliable": "30491"
+    }
+  ],
+  "service-discovery": {
+    "enable": "true",
+    "multicast": "224.224.224.245",
+    "port": "30490",
+    "protocol": "udp"
+  },
+  "routing": "mpu-client",
+  "supports": ["vsomeip"]
+}

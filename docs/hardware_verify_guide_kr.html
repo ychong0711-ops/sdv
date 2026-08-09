@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>실보드(Arduino UNO Q) 플래시 + UART/CAN 실물 검증 가이드</title>
+<style>
+  :root { --blue: #2563eb; --dark: #1e293b; --gray: #64748b; --green: #16a34a; --red: #dc2626; --orange: #ea580c; --light: #f8fafc; --border: #e2e8f0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--dark); line-height: 1.7; background: var(--light); }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  header { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); color: #fff; padding: 48px 0 36px; }
+  header h1 { font-size: 2rem; margin-bottom: 8px; }
+  header p { color: #94a3b8; font-size: 1.05rem; }
+  .badge { display: inline-block; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 4px 12px; font-size: 0.82rem; margin: 4px 4px 0 0; }
+
+  .toc { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 24px 32px; margin: 32px 0; }
+  .toc h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--blue); }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 6px; }
+  .toc a { color: var(--blue); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  section { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 32px; margin-bottom: 24px; }
+  section h2 { font-size: 1.4rem; color: var(--dark); border-bottom: 2px solid var(--blue); padding-bottom: 8px; margin-bottom: 20px; }
+  section h3 { font-size: 1.1rem; color: var(--dark); margin: 20px 0 10px; }
+  h3 .step { display: inline-block; background: var(--blue); color: #fff; border-radius: 50%; width: 28px; height: 28px; text-align: center; line-height: 28px; font-size: 0.85rem; margin-right: 8px; vertical-align: middle; }
+
+  pre { background: #0f172a; color: #e2e8f0; padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 0.88rem; line-height: 1.5; margin: 12px 0; }
+  code { font-family: 'Cascadia Code', 'Fira Code', monospace; }
+  p code, li code, td code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.88rem; color: var(--dark); }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.92rem; }
+  th, td { padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
+  th { background: #f1f5f9; font-weight: 600; }
+
+  .tip { background: #f0fdf4; border-left: 4px solid var(--green); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .warn { background: #fff7ed; border-left: 4px solid var(--orange); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .danger { background: #fef2f2; border-left: 4px solid var(--red); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .tip strong, .warn strong, .danger strong { display: block; margin-bottom: 4px; }
+
+  .diagram { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  .diagram pre { background: transparent; color: var(--dark); margin: 0; padding: 0; }
+
+  footer { text-align: center; padding: 32px 0; color: var(--gray); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header>
+<div class="container">
+  <h1>실보드 검증 가이드</h1>
+  <p>Arduino UNO Q 플래시 + MPU-MCU UART 터널 + CAN-FD 실물 검증</p>
+  <div style="margin-top: 16px;">
+    <span class="badge">Zephyr / west</span>
+    <span class="badge">STM32U585</span>
+    <span class="badge">QRB2210</span>
+    <span class="badge">UART LPUART1</span>
+    <span class="badge">CAN-FD 500k/2M</span>
+    <span class="badge">Safe State</span>
+  </div>
+</div>
+</header>
+
+<div class="container">
+
+<nav class="toc">
+  <h2>목차</h2>
+  <ol>
+    <li><a href="#s1">하드웨어 준비</a></li>
+    <li><a href="#s2">MCU 펌웨어 빌드 및 플래시</a></li>
+    <li><a href="#s3">부팅 로그 확인</a></li>
+    <li><a href="#s4">UART 터널 검증 (MPU→MCU)</a></li>
+    <li><a href="#s5">CAN-FD 실물 검증</a></li>
+    <li><a href="#s6">Safe State 실물 검증</a></li>
+    <li><a href="#s7">전체 시나리오 (E2E)</a></li>
+    <li><a href="#s8">문제 해결 (FAQ)</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="s1">
+  <h2>1. 하드웨어 준비</h2>
+
+  <table>
+    <tr><th>항목</th><th>비고</th></tr>
+    <tr><td>Arduino UNO Q 1대</td><td>QRB2210 MPU + STM32U585 MCU 내장</td></tr>
+    <tr><td>USB-C 케이블 2개</td><td>MPU 시리얼 + MCU 플래시/디버그용</td></tr>
+    <tr><td>USB 카메라 (선택)</td><td>UVC 호환, 없으면 시뮬레이션 모드</td></tr>
+    <tr><td>CAN-FD 트랜시버 모듈 (선택)</td><td>예: MCP2518FD, 없으면 루프백 테스트</td></tr>
+    <tr><td>CAN 버스 어댑터 (선택)</td><td>예: CANable/PCAN 으로 PC에서 수신 확인</td></tr>
+  </table>
+
+  <div class="diagram">
+    <pre>
+┌─────────────────── Arduino UNO Q ───────────────────┐
+│                                                      │
+│  ┌──────────────┐   LPUART1 (PG7/PG8)   ┌────────┐  │
+│  │ QRB2210 MPU  │◄─────────────────────►│STM32U585│  │
+│  │ Debian Linux │   115200 8N1          │ Zephyr  │  │
+│  │  /dev/ttyS0  │   SOME/IP tunnel      │         │  │
+│  └──────────────┘                       └───┬────┘  │
+│                                             │ FDCAN1 │
+│                                             ▼        │
+│                                      CAN-FD 500k/2M  │
+└──────────────────────────────────────────────────────┘
+      │                                        │
+   USB-C (MPU)                     CAN 트랜시버 (선택)</pre>
+  </div>
+
+  <div class="tip">
+    <strong>💡 MPU 시리얼 확인</strong>
+    보드를 USB-C로 연결한 뒤 <code>dmesg | grep tty</code> (Linux) 또는 장치 관리자 (Windows)로
+    MPU 콘솔 포트를 확인하세요. MPU 리눅스 셸은 <code>screen /dev/ttyACM0 115200</code> 또는
+    <code>minicom -D /dev/ttyACM0</code>로 접속합니다.
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <h2>2. MCU 펌웨어 빌드 및 플래시</h2>
+
+  <h3><span class="step">1</span> 빌드 (이미 검증 완료)</h3>
+<pre><code># Zephyr 환경 (west + SDK) 준비 후, 프로젝트 루트에서
+west build -b arduino_uno_q MCU
+
+# 성공 출력 예시 (실측값)
+# Memory region         Used Size  Region Size  %age Used
+#            FLASH:       96240 B         2 MB      4.59%
+#              RAM:       27296 B       768 KB      3.47%
+# Generating files from .../zephyr.elf for board: arduino_uno_q/stm32u585xx</code></pre>
+
+  <h3><span class="step">2</span> 플래시</h3>
+<pre><code># MCU 디버그 포트 연결 상태에서
+west flash
+
+# (대체) DFU/직접 기록이 필요한 경우
+west flash -r dfu-util</code></pre>
+
+  <div class="warn">
+    <strong>⚠️ 플래시 전 확인</strong>
+    USB-C 케이블이 <strong>MCU 디버그/플래시 포트</strong>에 연결됐는지 확인하세요.
+    UNO Q에서 MPU 포트와 MCU 포트는 별도입니다. <code>west flash</code> 실패 시
+    <code>nrfjprog</code>/<code>STM32CubeProgrammer</code> 대체 도구를 확인하세요.
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <h2>3. 부팅 로그 확인</h2>
+  <p>플래시 후 MCU 시리얼 콘솔에서 다음 로그가 순서대로 출력되면 펌웨어가 정상 기동한 것입니다.</p>
+
+<pre><code>*** Booting Zephyr OS build zephyr-v4.0.0 ***
+[00:00:00.000] &lt;inf&gt; mcu_main: === SDV Zone Controller (STM32U585 + Zephyr) Boot ===
+[00:00:00.000] &lt;inf&gt; mcu_main: Build: Aug  8 2026
+[00:00:00.000] &lt;inf&gt; mcu_main: CAN-FD init OK (500k arbitration / 2M data)
+[00:00:00.000] &lt;inf&gt; mcu_main: SOME/IP transport: UDP listening 30490  ← (또는 UART)
+[00:00:00.000] &lt;inf&gt; can_gateway: CAN TX thread started (Prio 5)
+[00:00:00.000] &lt;inf&gt; someip_service: SOME/IP RX thread started
+[00:00:00.000] &lt;inf&gt; safety: Safe State armed (watchdog 100ms)</code></pre>
+
+  <div class="danger">
+    <strong>🔴 실보드 기본 전송: UART</strong>
+    이 프로젝트는 <strong>실보드에서 UART 터널(LPUART1)을 기본</strong>으로 사용합니다.
+    PC 시뮬레이션과 달리 <code>SOMEIP_TRANSPORT=uart</code> 또는 빌드 옵션으로 UART를 활성화해야 합니다.
+    MCU 쪽은 <code>MCU/Kconfig</code>의 <code>SOMEIP_TRANSPORT_UART</code>로 선택합니다.
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <h2>4. UART 터널 검증 (MPU → MCU)</h2>
+  <p>MPU(Debian Linux)에서 Python 클라이언트가 SOME/IP 패킷을 LPUART1로 전송하면, MCU가 수신해 CAN으로 보냅니다.</p>
+
+  <h3><span class="step">1</span> MPU 셸에서 전송 테스트</h3>
+<pre><code># MPU 리눅스 셸에서 (프로젝트 마운트 위치 기준)
+python3 mpu/ai/trigger_test.py --transport uart --uart-port /dev/ttyS0 --level 85</code></pre>
+
+  <h3><span class="step">2</span> MCU 시리얼 콘솔에서 수신 확인</h3>
+<pre><code>[00:00:05.123] &lt;inf&gt; someip_service: SOME/IP RX: drowsiness=85%
+[00:00:05.124] &lt;inf&gt; can_gateway: CAN TX: ID=0x18FF01F4 DLC=8 Data=55 AA 01 55 00 00 CRC CNT</code></pre>
+
+  <h3><span class="step">3</span> 패킷 형식 확인 (의미)</h3>
+  <table>
+    <tr><th>바이트</th><th>값</th><th>의미</th></tr>
+    <tr><td>0-1</td><td><code>12 34</code></td><td>Service ID (0x1234)</td></tr>
+    <tr><td>2-3</td><td><code>80 01</code></td><td>Event ID (NotifyDrowsiness)</td></tr>
+    <tr><td>4-7</td><td><code>00 00 00 09</code></td><td>Length (= payload 1 + 8)</td></tr>
+    <tr><td>8-11</td><td><code>00 01 00 01</code></td><td>Client ID / Session ID</td></tr>
+    <tr><td>12-15</td><td><code>01 01 02 00</code></td><td>Proto/Interface/Type(Notify)/Return</td></tr>
+    <tr><td>16</td><td><code>55</code></td><td>drowsiness level (85% = 0x55)</td></tr>
+  </table>
+
+  <div class="tip">
+    <strong>💡 UART로 Wireshark 캡처는?</strong>
+    UART는 raw 바이트 스트림이라 pcap으로 직접 캡처되지 않습니다. 대신 <code>serial->udp</code> 중계기
+    (예: socat)로 감싸면 PC의 Wireshark에서 같은 패킷을 분석할 수 있습니다:
+    <br><code>socat -d -d PTY,link=/tmp/vcom,raw /dev/ttyS0,b115200</code>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <h2>5. CAN-FD 실물 검증</h2>
+
+  <h3><span class="step">1</span> CAN 트랜시버 연결 (없으면 루프백)</h3>
+  <ul style="padding-left: 20px; margin-bottom: 12px;">
+    <li>MCU <code>FDCAN1</code> 핀 → CAN 트랜시버 → CAN 버스 (H/L)</li>
+    <li>트랜시버가 없으면 <strong>내부 루프백</strong>으로 자체 수신 확인 가능 (MCU가 자기 프레임을 받음)</li>
+  </ul>
+
+  <h3><span class="step">2</span> MCU에서 CAN TX 확인</h3>
+  <p>MCU 코드는 졸음 레벨 수신 시 다음 CAN-FD 프레임을 전송합니다:</p>
+<pre><code>ID       : 0x18FF01F4 (J1939 확장 프레임)
+DLC      : 8
+Data[0]  : 0x55  (프로토콜 태그)
+Data[1]  : 0xAA  (마커)
+Data[2]  : 0x01  (경고 타입)
+Data[3]  : level (0-100, 졸음 정도)
+Data[4]  : 0x00  (예약)
+Data[5]  : 0x00  (예약)
+Data[6]  : CRC8  (E2E 보호, 다항식 0x1D init 0xFF)
+Data[7]  : Alive Counter (0-15 순환)</code></pre>
+
+  <h3><span class="step">3</span> PC에서 CAN 수신 확인 (어댑터 있을 때)</h3>
+<pre><code># Linux + CANable/PCAN 어댑터
+sudo ip link set can0 type can bitrate 500000 dbitrate 2000000 fd on
+sudo ip link set can0 up
+candump can0 -L   # 출력: 18FF01F4 [8] 55 AA 01 55 00 00 XX XX</code></pre>
+
+  <div class="tip">
+    <strong>💡 CRC8 검증</strong>
+    PC에서 수신한 프레임의 CRC8은 MCU의 <code>e2e_crc8</code>과 동일 규칙(다항식 0x1D, init 0xFF,
+    final XOR 0xFF)으로 계산됩니다. Python <code>mpu.someip.protocol.crc8</code>과 유닛 테스트로
+    교차 검증된 값입니다 — <code>pytest mpu/tests/</code> 5개 모두 통과 상태.
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <h2>6. Safe State 실물 검증 (핵심!)</h2>
+  <p>이 프로젝트의 차별점인 <strong>ISO 26262 Safe State</strong>를 실물에서 검증합니다.</p>
+
+  <h3><span class="step">1</span> 정상 상태 확인</h3>
+  <p>MPU가 50ms 주기로 Heartbeat(0x8002)를 보내면 MCU의 Watchdog이 계속 리셋됩니다. 이때는 CAN 경고 프레임이 <strong>없고</strong> LED가 정상 상태입니다.</p>
+
+  <h3><span class="step">2</span> 실패 주입 (Fail Injection)</h3>
+<pre><code># MPU에서 heartbeat 프로세스 강제 종료
+pkill -f drowsiness.py
+# 또는 UART 케이블 분리</code></pre>
+
+  <h3><span class="step">3</span> Safe State 진입 확인 (100ms 내)</h3>
+  <table>
+    <tr><th>동작</th><th>기대 결과</th><th>판정</th></tr>
+    <tr><td>CAN 경고 프레임</td><td>level=0xFF 강제 경고 프레임 전송</td><td>candump에서 확인</td></tr>
+    <tr><td>LED 점멸</td><td>빠른 토글 (Safe State 표시)</td><td>육안/오실로스코프</td></tr>
+    <tr><td>Watchdog</td><td>리셋 없이 Safe State 유지</td><td>시리얼 로그 연속 출력</td></tr>
+  </table>
+
+  <h3><span class="step">4</span> 복구 확인</h3>
+<pre><code># MPU에서 heartbeat 재개
+python3 mpu/ai/drowsiness.py --transport uart --uart-port /dev/ttyS0</code></pre>
+  <p>50ms 이내 heartbeat가 다시 오면 MCU가 Safe State를 해제하고 NORMAL로 복귀합니다.</p>
+
+  <div class="danger">
+    <strong>⚠️ 안전 동작 원리</strong>
+    Safe State에서는 <strong>리셋하지 않고</strong> Watchdog를 의도적으로 계속 먹여 안전 상태를 유지합니다.
+    (리셋하면 무한 재부팅 루프에 빠질 수 있음) 이 설계 결정을 면접에서 설명할 수 있어야 합니다.
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <h2>7. 전체 시나리오 (E2E)</h2>
+
+  <h3>졸음 감지 → CAN 경고까지 전체 흐름</h3>
+<pre><code>[MPU] 카메라 프레임 ──TFLite──► drowsiness=85%
+  │
+  ▼  SOME/IP Notify (0x8001) 24B
+[UART LPUART1 115200]  또는  [UDP 30490]
+  │
+  ▼
+[MCU] someip_service 파싱 (CRC/길이 검증)
+  │
+  ▼
+[MCU] can_gateway: CAN-FD TX 0x18FF01F4 [55 AA 01 55 00 00 CRC CNT]
+  │
+  ▼
+[CAN 버스] ──► 계기판/디스플레이 경고
+
+[병행] MPU Heartbeat (0x8002) 50ms ──► MCU Watchdog 유지
+[실패] 100ms 미수신 ──► Safe State: 경고 프레임 + LED 점멸</code></pre>
+
+  <h3>검증 체크리스트</h3>
+  <table>
+    <tr><th>#</th><th>검증 항목</th><th>성공 기준</th></tr>
+    <tr><td>1</td><td>MCU 부팅</td><td>Boot 로그 + 스레드 3개 기동</td></tr>
+    <tr><td>2</td><td>UART 수신</td><td><code>SOME/IP RX: drowsiness=85%</code></td></tr>
+    <tr><td>3</td><td>CAN TX</td><td><code>ID=0x18FF01F4 ... 55 AA 01 55 ...</code></td></tr>
+    <tr><td>4</td><td>CRC8</td><td>수신 측 CRC 재계산 일치</td></tr>
+    <tr><td>5</td><td>Safe State</td><td>heartbeat 중단 100ms 내 진입 + 복구</td></tr>
+    <tr><td>6</td><td>E2E</td><td>트리거 → 경고 프레임까지 < 100ms</td></tr>
+  </table>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <h2>8. 문제 해결 (FAQ)</h2>
+
+  <table>
+    <tr><th>문제</th><th>원인</th><th>해결</th></tr>
+    <tr>
+      <td><code>west flash</code> 실패</td>
+      <td>디버그 포트 미연결 / 드라이버</td>
+      <td>MCU 포트 확인, <code>lsusb</code>로 장치 인식 확인</td>
+    </tr>
+    <tr>
+      <td>MPU <code>/dev/ttyS0</code> 없음</td>
+      <td>LPUART1 노드/권한</td>
+      <td><code>dmesg | grep tty</code>, <code>sudo chmod 666 /dev/ttyS0</code></td>
+    </tr>
+    <tr>
+      <td>MCU가 UART 메시지 수신 안 함</td>
+      <td>Kconfig에서 UART 전송 미활성</td>
+      <td><code>MCU/Kconfig</code>의 <code>SOMEIP_TRANSPORT_UART=y</code>로 빌드</td>
+    </tr>
+    <tr>
+      <td>CAN 프레임 안 나감</td>
+      <td>트랜시버 전원/종단 저항</td>
+      <td>CAN_H/CAN_L 종단 120Ω, 전원 확인</td>
+    </tr>
+    <tr>
+      <td>Safe State가 바로 진입함</td>
+      <td>heartbeat 전송 중단</td>
+      <td>MPU에서 <code>drowsiness.py</code> 실행 상태 확인 (50ms 주기)</td>
+    </tr>
+    <tr>
+      <td>시리얼이 깨져 보임</td>
+      <td>baudrate 불일치</td>
+      <td>115200 8N1 확인 (UART 터널 기본값)</td>
+    </tr>
+  </table>
+
+  <div class="tip">
+    <strong>💡 최종 조언</strong>
+    실물 검증은 1→6 체크리스트를 순서대로 진행하세요. 2(UART)가 안 되면 3(CAN)은 볼 수 없습니다.
+    각 단계의 로그/사진을 남기면 면접 증거 자료가 됩니다.
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>SDV Zone Controller 실보드 검증 가이드 | 2026</p>
+    <p>본 가이드는 실제 빌드 검증(west build -b arduino_uno_q, FLASH 4.59%)과 MCU 소스(can_gateway/safety/someip_service) 기준으로 작성되었습니다.</p>
+  </div>
+</footer>
+
+</body>
+</html>

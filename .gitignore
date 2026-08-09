@@ -1,0 +1,26 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
+
+# ===== Yocto 빌드 산출물 (대용량, Docker Linux 볼륨) =====
+yocto/build/tmp/
+yocto/build/tmp-*/
+yocto/build/sstate-cache/
+yocto/build/downloads/
+yocto/build/cache/
+yocto/build/log/
+
+# ===== Yocto 빌드 잔여물 (bitbake 런타임 파일) =====
+yocto/build/bitbake.sock
+yocto/build/bitbake.lock
+yocto/build/bitbake-cookerdaemon.log
+yocto/build/hashserve.sock
+
+# ===== OS / IDE =====
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

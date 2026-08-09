@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yocto 빌드 환경 구축 가이드 - SDV Zone Controller</title>
+<style>
+  :root { --blue: #2563eb; --dark: #1e293b; --gray: #64748b; --green: #16a34a; --red: #dc2626; --orange: #ea580c; --light: #f8fafc; --border: #e2e8f0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--dark); line-height: 1.7; background: var(--light); }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  header { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); color: #fff; padding: 48px 0 36px; }
+  header h1 { font-size: 2rem; margin-bottom: 8px; }
+  header p { color: #94a3b8; font-size: 1.05rem; }
+  .badge { display: inline-block; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 4px 12px; font-size: 0.82rem; margin: 4px 4px 0 0; }
+
+  .toc { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 24px 32px; margin: 32px 0; }
+  .toc h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--blue); }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 6px; }
+  .toc a { color: var(--blue); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  section { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 32px; margin-bottom: 24px; }
+  section h2 { font-size: 1.4rem; color: var(--dark); border-bottom: 2px solid var(--blue); padding-bottom: 8px; margin-bottom: 20px; }
+  section h3 { font-size: 1.1rem; color: var(--dark); margin: 20px 0 10px; }
+  h3 .step { display: inline-block; background: var(--blue); color: #fff; border-radius: 50%; width: 28px; height: 28px; text-align: center; line-height: 28px; font-size: 0.85rem; margin-right: 8px; vertical-align: middle; }
+
+  pre { background: #0f172a; color: #e2e8f0; padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 0.88rem; line-height: 1.5; margin: 12px 0; }
+  code { font-family: 'Cascadia Code', 'Fira Code', monospace; }
+  p code, li code, td code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.88rem; color: var(--dark); }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.92rem; }
+  th, td { padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
+  th { background: #f1f5f9; font-weight: 600; }
+
+  .tip { background: #f0fdf4; border-left: 4px solid var(--green); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .warn { background: #fff7ed; border-left: 4px solid var(--orange); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .danger { background: #fef2f2; border-left: 4px solid var(--red); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .tip strong, .warn strong, .danger strong { display: block; margin-bottom: 4px; }
+
+  .diagram { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  .diagram pre { background: transparent; color: var(--dark); margin: 0; padding: 0; }
+
+  footer { text-align: center; padding: 32px 0; color: var(--gray); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header>
+<div class="container">
+  <h1>Yocto 빌드 환경 구축 가이드</h1>
+  <p>SDV Zone Controller 프로젝트 - Phase 2: Debian → Yocto Kirkstone 이식</p>
+  <div style="margin-top: 16px;">
+    <span class="badge">Yocto Kirkstone 4.0 LTS</span>
+    <span class="badge">bitbake</span>
+    <span class="badge">qemuarm64</span>
+    <span class="badge">meta-sdv 레이어</span>
+    <span class="badge">Docker</span>
+  </div>
+</div>
+</header>
+
+<div class="container">
+
+<nav class="toc">
+  <h2>목차</h2>
+  <ol>
+    <li><a href="#s1">왜 Yocto인가?</a></li>
+    <li><a href="#s2">요구사항 및 준비물</a></li>
+    <li><a href="#s3">프로젝트 구조 (yocto/ 폴더)</a></li>
+    <li><a href="#s4">방법 A: 원클릭 스크립트 (추천)</a></li>
+    <li><a href="#s5">방법 B: Docker 직접 실행 (수동)</a></li>
+    <li><a href="#s6">방법 C: kas (CI용 고급)</a></li>
+    <li><a href="#s7">빌드 산출물 확인</a></li>
+    <li><a href="#s8">QEMU로 테스트</a></li>
+    <li><a href="#s9">실제 보드 플래시 (선택)</a></li>
+    <li><a href="#s10">문제 해결 (FAQ)</a></li>
+    <li><a href="#s11">면접 활용 전략</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="s1">
+  <h2>1. 왜 Yocto인가?</h2>
+  <p>Phase 1은 <strong>Debian + Docker</strong>로 1분 만에 SOME/IP 프로토타입을 증명했습니다. 하지만 독일 자동차 산업이 요구하는 것은 프로덕션급 빌드 시스템입니다.</p>
+
+  <table>
+    <tr><th>구분</th><th>Debian (Phase 1)</th><th>Yocto (Phase 2)</th></tr>
+    <tr><td>빌드 시간</td><td>1분</td><td>1-3시간 (sstate 이후 10분)</td></tr>
+    <tr><td>재현 가능성</td><td>낮음</td><td>매우 높음 (정확한 버전 고정)</td></tr>
+    <tr><td>라이선스 관리</td><td>수동</td><td>자동 (license manifest)</td></tr>
+    <tr><td>이미지 크기</td><td>큼 (범용 패키지)</td><td>최적화 가능 (베어메탈까지)</td></tr>
+    <tr><td>지원 기간</td><td>5년</td><td>Kirkstone 10년 LTS</td></tr>
+    <tr><td>면접 가치</td><td>프로토타이핑 속도</td><td>프로덕션 엔지니어링</td></tr>
+  </table>
+
+  <div class="tip">
+    <strong>💡 면접 답변 포인트</strong>
+    "Phase 1에서 Debian으로 SOME/IP를 6주 만에 증명했습니다. 프로덕션 적합성을 위해 Yocto Kirkstone LTS로 이식 중입니다. sdv-hpc-image는 Docker + vsomeip + AI를 포함한 Adaptive HPC 이미지입니다."
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <h2>2. 요구사항 및 준비물</h2>
+  <ul style="padding-left: 20px; margin-bottom: 16px;">
+    <li><strong>Docker</strong> (20.10+): Yocto 빌드 호스트가 컨테이너로 제공됨</li>
+    <li><strong>디스크 여유 공간</strong>: 최소 50GB (빌드 중 소스 다운로드 + tmp 폴더)</li>
+    <li><strong>RAM</strong>: 8GB 이상 권장 (bitbake는 병렬 태스크 실행)</li>
+    <li><strong>CPU</strong>: 4코어 이상 (빌드 시간에 직접 영향)</li>
+    <li><strong>인터넷</strong>: 최초 빌드 시 소스 다운로드 필요 (1-2GB)</li>
+  </ul>
+
+  <div class="warn">
+    <strong>⚠️ 빌드 시간 안내</strong>
+    최초 빌드는 소스 다운로드 + 컴파일로 <strong>1~3시간</strong>이 소요됩니다. sstate-cache가 생성된 이후부터는 10분 내외입니다. CI에서는 시간 문제로 Yocto 빌드를 생략하는 것도 전략입니다.
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <h2>3. 프로젝트 구조 (yocto/ 폴더)</h2>
+
+  <div class="diagram">
+    <pre>
+yocto/
+├── Dockerfile.yocto              # Ubuntu 22.04 + Yocto 빌드 의존성 + poky kirkstone
+├── kas.yml                       # kas 빌드 (선택, 없이도 가능)
+├── meta-sdv/                     # ★ 커스텀 레이어 (GitHub의 핵심)
+│   ├── conf/layer.conf
+│   ├── recipes-core/images/
+│   │   └── sdv-hpc-image.bb      # HPC 이미지 (Docker + vsomeip + AI + CAN)
+│   ├── recipes-support/vsomeip/
+│   │   ├── vsomeip_3.4.10.bb     # SOME/IP 스택 (AUTOSAR Adaptive)
+│   │   └── files/vsomeip.json, vsomeip.service
+│   └── recipes-app/sdv-mpu/
+│       ├── sdv-mpu_1.0.bb        # AI 앱 패키징 (systemd)
+│       └── files/drowsiness.py, sdv-mpu.service
+├── build/conf/
+│   ├── bblayers.conf.sample
+│   └── local.conf.sample
+└── scripts/
+    ├── build-yocto.sh            # 원클릭 빌드 (Docker + bitbake)
+    └── entrypoint-yocto.sh</pre>
+  </div>
+
+  <h3>각 레시피의 역할</h3>
+  <table>
+    <tr><th>레시피</th><th>역할</th><th>핵심 내용</th></tr>
+    <tr>
+      <td><code>sdv-hpc-image.bb</code></td>
+      <td>전체 시스템 이미지</td>
+      <td>Docker, vsomeip, sdv-mpu, can-utils, tshark, gdb 포함</td>
+    </tr>
+    <tr>
+      <td><code>vsomeip_3.4.10.bb</code></td>
+      <td>SOME/IP 스택</td>
+      <td>COVESA vsomeip v3.4.10, boost + dlt-daemon 의존, systemd 서비스</td>
+    </tr>
+    <tr>
+      <td><code>sdv-mpu_1.0.bb</code></td>
+      <td>AI 앱 패키징</td>
+      <td>drowsiness.py + trigger_test.py, Python/TFLite, systemd 자동 실행</td>
+    </tr>
+  </table>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <h2>4. 방법 A: 원클릭 스크립트 (추천)</h2>
+  <p>가장 간단한 방법입니다. 프로젝트 루트에서 한 번만 실행하면 됩니다.</p>
+
+  <h3><span class="step">1</span> 스크립트 실행</h3>
+<pre><code># 프로젝트 루트에서
+./yocto/scripts/build-yocto.sh</code></pre>
+
+  <h3><span class="step">2</span> 스크립트가 하는 일</h3>
+  <ol style="padding-left: 20px; margin-bottom: 16px;">
+    <li>Yocto Docker 이미지 빌드 (최초 1회, 5-10분) — 이미 있으면 스킵</li>
+    <li>빌드 디렉토리 준비: <code>yocto/build/sstate-cache</code>, <code>downloads</code></li>
+    <li>컨테이너 실행 + <code>source poky/oe-init-build-env build</code></li>
+    <li><code>MACHINE=qemuarm64 bitbake sdv-hpc-image</code> 실행 (최초 1-3시간)</li>
+  </ol>
+
+  <div class="tip">
+    <strong>💡 2회차부터는?</strong>
+    sstate-cache가 캐시되므로 <strong>10분</strong> 내외로 빌드가 끝납니다. 이것이 Yocto의 재현 가능성 강점입니다.
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <h2>5. 방법 B: Docker 직접 실행 (수동)</h2>
+  <p>스크립트 없이 Docker 명령으로 직접 제어하는 방법입니다.</p>
+
+  <h3><span class="step">1</span> 빌드 호스트 이미지 빌드</h3>
+<pre><code>docker build -f yocto/Dockerfile.yocto -t sdv-yocto:4.0 yocto/</code></pre>
+
+  <h3><span class="step">2</span> 컨테이너 실행 (meta-sdv + 빌드 캐시 마운트)</h3>
+<pre><code>docker run --rm -it \
+  -v $(pwd)/yocto/meta-sdv:/home/yocto/yocto/meta-sdv:ro \
+  -v $(pwd)/yocto/build:/home/yocto/yocto/build \
+  sdv-yocto:4.0 bash</code></pre>
+
+  <h3><span class="step">3</span> 컨테이너 내부에서 빌드</h3>
+<pre><code># 컨테이너 내부
+source poky/oe-init-build-env build
+MACHINE=qemuarm64 bitbake sdv-hpc-image</code></pre>
+
+  <div class="warn">
+    <strong>⚠️ 마운트 포인트</strong>
+    meta-sdv는 <code>:ro</code>(읽기 전용)로 마운트됩니다. 레시피 수정은 호스트에서 편집하고 재빌드하세요.
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <h2>6. 방법 C: kas (CI용 고급)</h2>
+  <p>kas는 Yocto 빌드를 선언적으로 자동화하는 도구입니다. CI 파이프라인에서 유용합니다.</p>
+
+<pre><code>pip install kas
+kas build yocto/kas.yml</code></pre>
+
+  <p><code>kas.yml</code>이 관리하는 것:</p>
+  <ul style="padding-left: 20px; margin-bottom: 16px;">
+    <li>poky (kirkstone 브랜치) + meta-openembedded + meta-sdv 레이어 조합</li>
+    <li>머신: <code>qemuarm64</code>, 배포판: <code>poky</code></li>
+    <li>이미지에 docker-moby, docker-compose, vsomeip, sdv-mpu 포함</li>
+  </ul>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <h2>7. 빌드 산출물 확인</h2>
+<pre><code>ls -lh yocto/build/tmp/deploy/images/qemuarm64/
+# sdv-hpc-image-qemuarm64.wic.xz  ← SD 카드 플래시용
+# sdv-hpc-image-qemuarm64.tar.bz2 ← 아카이브
+# sdv-hpc-image-qemuarm64.wic.bmap</code></pre>
+
+  <table>
+    <tr><th>파일 확장자</th><th>용도</th></tr>
+    <tr><td><code>.wic</code> / <code>.wic.xz</code></td><td>SD/eMMC 플래시 이미지 (dd로 기록)</td></tr>
+    <tr><td><code>.wic.bmap</code></td><td>bmaptool용 매핑 (빠른 기록)</td></tr>
+    <tr><td><code>.tar.bz2</code></td><td>루트 파일시스템 아카이브</td></tr>
+  </table>
+
+  <div class="danger">
+    <strong>🔴 현재 상태 안내</strong>
+    이 프로젝트의 Yocto 레시피는 <strong>작성 완료 + SRCREV 검증 완료</strong> 상태이며, <strong>첫 빌드 성공은 검증 대기</strong>입니다. 이 가이드를 따라 빌드를 완료하고, 성공 스크린샷을 <code>yocto/README_YOCTO.md</code>에 기록하세요.
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <h2>8. QEMU로 테스트 (UNO Q 없이)</h2>
+  <p>빌드가 완료되면 PC에서 가상 머신으로 부팅해 검증할 수 있습니다. UNO Q의 QRB2210(Cortex-A53)은 qemuarm64로 에뮬레이션됩니다.</p>
+
+<pre><code>cd yocto/build
+runqemu qemuarm64 sdv-hpc-image nographic</code></pre>
+
+  <p>QEMU 부팅 후 내부에서 확인할 것:</p>
+<pre><code>systemctl status vsomeipd      # SOME/IP 데몬 상태
+systemctl status sdv-mpu       # AI 앱 상태
+journalctl -u sdv-mpu -f       # AI 로그 실시간
+tshark -i eth0 -f "udp port 30490"  # SOME/IP 패킷 캡처</code></pre>
+</section>
+
+<!-- 9 -->
+<section id="s9">
+  <h2>9. 실제 보드에 플래시 (선택)</h2>
+  <p>UNO Q의 QRB2210은 커스텀 BSP가 필요하므로, 실습용으로 Raspberry Pi 4로 대체 검증하는 방법을 제공합니다.</p>
+
+<pre><code># Raspberry Pi 4 타겟으로 빌드
+MACHINE=raspberrypi4-64 bitbake sdv-hpc-image
+
+# SD 카드에 플래시 (/dev/sdX는 SD 카드 경로로 교체)
+sudo dd if=tmp/deploy/images/raspberrypi4-64/sdv-hpc-image-raspberrypi4-64.wic of=/dev/sdX bs=4M</code></pre>
+
+  <div class="tip">
+    <strong>💡 UNO Q 실제 플래시</strong>
+    UNO Q QRB2210에 플래시하려면 Qualcomm BSP(<code>meta-qcom</code>) 레이어 추가가 필요합니다. 고급 과정이며, Phase 2 후반 목표입니다.
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="s10">
+  <h2>10. 문제 해결 (FAQ)</h2>
+
+  <table>
+    <tr><th>문제</th><th>원인</th><th>해결</th></tr>
+    <tr>
+      <td><code>bitbake: command not found</code></td>
+      <td>빌드 환경 초기화 안 됨</td>
+      <td><code>source poky/oe-init-build-env build</code> 먼저 실행</td>
+    </tr>
+    <tr>
+      <td><code>vsomeip: fatal error: boost/log/trivial.hpp: No such file</code></td>
+      <td>boost-dev 의존성 누락</td>
+      <td><code>DEPENDS = "boost dlt-daemon"</code> 확인 (레시피에 포함됨)</td>
+    </tr>
+    <tr>
+      <td>빌드 중간에 소스 다운로드 실패</td>
+      <td>네트워크 문제 / 특정 미러 차단</td>
+      <td><code>build/downloads</code> 폴더 캐시 유지, 재실행 시 이어짐</td>
+    </tr>
+    <tr>
+      <td>디스크 공간 부족</td>
+      <td>tmp 폴더 대형화</td>
+      <td>최소 50GB 확보, <code>bitbake -c cleanall</code>로 정리</td>
+    </tr>
+    <tr>
+      <td>Docker 마운트 후 레시피 안 보임</td>
+      <td>bblayers.conf에 meta-sdv 미추가</td>
+      <td>entrypoint-yocto.sh가 자동 추가. 수동 시:
+      <code>BBLAYERS += " ${TOPDIR}/../meta-sdv "</code></td>
+    </tr>
+    <tr>
+      <td>빌드에 root로 실행 금지 오류</td>
+      <td>Yocto 정책 (root 빌드 불가)</td>
+      <td>Dockerfile.yocto가 <code>yocto</code> 사용자로 전환함 (자동 처리)</td>
+    </tr>
+  </table>
+
+  <p>상세 트러블슈팅은 <a href="./../yocto/TROUBLESHOOTING.md">yocto/TROUBLESHOOTING.md</a> 참고.</p>
+</section>
+
+<!-- 11 -->
+<section id="s11">
+  <h2>11. 면접 활용 전략</h2>
+
+  <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+    <p><strong>Q: "Yocto 경험이 있나요?"</strong></p>
+    <p>A: "Kirkstone LTS 기반 커스텀 레이어(meta-sdv)를 만들었습니다. vsomeip와 AI 앱을 레시피로 패키징하고, systemd로 서비스 관리하도록 이미지를 구성했습니다. MACHINE을 qemuarm64로 설정해 PC에서 QEMU 검증까지 진행했습니다."</p>
+  </div>
+
+  <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+    <p><strong>Q: "왜 Debian 대신 Yocto인가요?"</strong></p>
+    <p>A: "Debian은 프로토타이핑에 탁월하지만, 프로덕션에서는 라이선스 관리와 재현 가능성이 중요합니다. Yocto는 빌드가 완전히 결정론적이고, 라이선스 manifest를 자동 생성하며, 10년 LTS를 제공합니다. 독일 자동차사가 선호하는 방식입니다."</p>
+  </div>
+
+  <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+    <p><strong>Q: "CI에 Yocto 빌드를 왜 안 넣었나요?"</strong></p>
+    <p>A: "초기 빌드가 3시간이라 CI 대기열에 부담이 됩니다. 그래서 CI는 Phase 1(Debian/Docker)만 자동화하고, Yocto는 로컬에서 sstate-cache로 빌드했습니다. 브랜치별 분리 실행도 준비되어 있습니다."</p>
+  </div>
+
+  <h3>면접에서 보여줄 증거</h3>
+  <ol style="padding-left: 20px; margin-bottom: 12px;">
+    <li><strong>GitHub:</strong> <code>yocto/meta-sdv/</code> 폴더 + <code>sdv-hpc-image.bb</code> + <code>vsomeip_3.4.10.bb</code> 레시피</li>
+    <li><strong>빌드 스크린샷:</strong> <code>bitbake sdv-hpc-image</code> 성공 로그 + <code>ls -lh tmp/deploy/images/</code></li>
+    <li><strong>QEMU 시연:</strong> <code>runqemu</code>로 부팅 후 <code>systemctl status sdv-mpu</code> 확인</li>
+    <li><strong>전문 용어:</strong> layer, recipe, bitbake, sstate-cache, MACHINE, IMAGE_INSTALL, WIC</li>
+  </ol>
+
+  <div class="tip">
+    <strong>💡 핵심 요약</strong>
+    Yocto는 "코드"가 아니라 "빌드 시스템"을 다루는 역량입니다. 레시피 문법(bb), 레이어 구조, bitbake 태스크 개념을 화이트보드에 그릴 수 있으면 가장 강력한 인상을 남깁니다.
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>SDV Zone Controller Yocto Build Guide | 2026</p>
+    <p>본 가이드는 프로젝트의 yocto/README_YOCTO.md, Dockerfile.yocto, meta-sdv 레시피를 기반으로 작성되었습니다.</p>
+  </div>
+</footer>
+
+</body>
+</html>

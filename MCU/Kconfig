@@ -1,0 +1,20 @@
+# 앱 Kconfig 루트 — 반드시 Zephyr Kconfig 트리를 source해야 함
+# (앱에 자체 Kconfig가 있으면 이 파일이 트리 루트가 되어, 없으면
+#  SERIAL/LOG/CAN 등 모든 Zephyr 심볼이 "undefined"로 빌드 실패)
+source "$(ZEPHYR_BASE)/Kconfig"
+
+menuconfig SOMEIP
+	bool "SOME/IP options"
+	default y
+
+if SOMEIP
+
+config SOMEIP_TRANSPORT_UART
+	bool "SOME/IP transport over UART (lpuart1, real board)"
+	default n
+	help
+	  실보드(UNO Q)에서는 MPU-MCU 물리 링크가 LPUART1이므로 UART 터널 사용.
+	  PC 시뮬레이션에서는 UDP(127.0.0.1:30490) 사용 (기본).
+	  UART 사용 시 DT_ALIAS(someip-uart)로 지정된 LPUART1 장치가 필요하다.
+
+endif # SOMEIP

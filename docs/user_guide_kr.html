@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDV Zone Controller - 초보자 가이드</title>
+<style>
+  :root { --blue: #2563eb; --dark: #1e293b; --gray: #64748b; --green: #16a34a; --red: #dc2626; --orange: #ea580c; --light: #f8fafc; --border: #e2e8f0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--dark); line-height: 1.7; background: var(--light); }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  header { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); color: #fff; padding: 48px 0 36px; }
+  header h1 { font-size: 2rem; margin-bottom: 8px; }
+  header p { color: #94a3b8; font-size: 1.05rem; }
+  .badge { display: inline-block; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 4px 12px; font-size: 0.82rem; margin: 4px 4px 0 0; }
+
+  /* TOC */
+  .toc { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 24px 32px; margin: 32px 0; }
+  .toc h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--blue); }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 6px; }
+  .toc a { color: var(--blue); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Sections */
+  section { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 32px; margin-bottom: 24px; }
+  section h2 { font-size: 1.4rem; color: var(--dark); border-bottom: 2px solid var(--blue); padding-bottom: 8px; margin-bottom: 20px; }
+  section h3 { font-size: 1.1rem; color: var(--dark); margin: 20px 0 10px; }
+  h3 .step { display: inline-block; background: var(--blue); color: #fff; border-radius: 50%; width: 28px; height: 28px; text-align: center; line-height: 28px; font-size: 0.85rem; margin-right: 8px; vertical-align: middle; }
+  p { margin-bottom: 12px; }
+
+  /* Code */
+  pre { background: #0f172a; color: #e2e8f0; padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 0.88rem; line-height: 1.5; margin: 12px 0; }
+  code { font-family: 'Cascadia Code', 'Fira Code', monospace; }
+  p code, li code, td code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.88rem; color: var(--dark); }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.92rem; }
+  th, td { padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
+  th { background: #f1f5f9; font-weight: 600; }
+
+  /* Callouts */
+  .tip { background: #f0fdf4; border-left: 4px solid var(--green); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .warn { background: #fff7ed; border-left: 4px solid var(--orange); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .danger { background: #fef2f2; border-left: 4px solid var(--red); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .tip strong, .warn strong, .danger strong { display: block; margin-bottom: 4px; }
+
+  /* Diagram */
+  .diagram { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  .diagram pre { background: transparent; color: var(--dark); margin: 0; padding: 0; }
+
+  /* Footer */
+  footer { text-align: center; padding: 32px 0; color: var(--gray); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header>
+<div class="container">
+  <h1>SDV Zone Controller - 초보자 가이드</h1>
+  <p>Arduino UNO Q 기반 heterogeneous SDV Zone Controller 프로젝트를 처음 접하는 분들을 위한 안내서</p>
+  <div style="margin-top: 16px;">
+    <span class="badge">Zephyr RTOS</span>
+    <span class="badge">SOME/IP</span>
+    <span class="badge">CAN-FD</span>
+    <span class="badge">ISO 26262</span>
+    <span class="badge">Docker</span>
+    <span class="badge">Python</span>
+  </div>
+</div>
+</header>
+
+<div class="container">
+
+<!-- TOC -->
+<nav class="toc">
+  <h2>목차</h2>
+  <ol>
+    <li><a href="#s1">이 프로젝트는 무엇인가?</a></li>
+    <li><a href="#s2">핵심 개념 미리보기</a></li>
+    <li><a href="#s3">환경 준비</a></li>
+    <li><a href="#s4">PC 시뮬레이션으로 첫 실행 (하드웨어 불필요)</a></li>
+    <li><a href="#s5">코드 한 줄씩 이해하기</a></li>
+    <li><a href="#s6">실보드(UNO Q)에서 실행하기</a></li>
+    <li><a href="#s7">문제 해결 (FAQ)</a></li>
+    <li><a href="#s8">면접에서 활용하는 법</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="s1">
+  <h2>1. 이 프로젝트는 무엇인가?</h2>
+  <p>독일 자동차 회사(BMW, Mercedes-Benz, CARIAD 등)는 차량 내부를 <strong>HPC(고성능 컴퓨터)</strong>와 <strong>Zone ECU(지역 제어기)</strong>로 나누어 관리합니다. 이를 <strong>SDV(Software Defined Vehicle)</strong> 아키텍처라고 합니다.</p>
+  <p>이 프로젝트는 실제 차량 아키텍처를 <strong>€68짜리 보드(Arduino UNO Q)</strong>로 1:1 재현한 포트폴리오입니다.</p>
+
+  <div class="diagram">
+    <pre>
+┌─────────────────────────────────────────────────────────────┐
+│  Arduino UNO Q (€68)                                       │
+│                                                             │
+│  ┌────────────────────┐     SOME/IP     ┌───────────────┐  │
+│  │ MPU: QRB2210        │  (UART 터널)   │ MCU: STM32U585 │  │
+│  │ Quad A53 2.0GHz    │◄──────────────►│ Cortex-M33    │  │
+│  │ Debian Linux       │  115200 baud    │ Zephyr RTOS   │  │
+│  │ Docker             │                 │               │  │
+│  └────────┬───────────┘                 └──────┬────────┘  │
+│           │                                    │            │
+│     USB 카메라                           CAN-FD 버스         │
+│           ▼                                    ▼            │
+│    [졸음 감지 AI]                      [계기판 경고]         │
+└─────────────────────────────────────────────────────────────┘</pre>
+  </div>
+
+  <h3>어떤 기술을 배우나?</h3>
+  <table>
+    <tr><th>기술</th><th>어디서 쓰이나</th><th>이 프로젝트에서</th></tr>
+    <tr><td>SOME/IP</td><td>차량 내 서비스 간 통신</td><td>Python→C++ 통신 프로토콜</td></tr>
+    <tr><td>CAN-FD</td><td>차량 버스 통신</td><td>졸음 경고 프레임 전송</td></tr>
+    <tr><td>Zephyr RTOS</td><td>MCU 실시간 운영체제</td><td>STM32U585 위에서 동작</td></tr>
+    <tr><td>Docker</td><td>컨테이너 기반 배포</td><td>AI 앱 패키징</td></tr>
+    <tr><td>ISO 26262</td><td>자동차 안전 표준</td><td>Safe State + Watchdog</td></tr>
+  </table>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <h2>2. 핵심 개념 미리보기</h2>
+
+  <h3>SOME/IP란?</h3>
+  <p>SOME/IP는 <strong>Service-Oriented Middleware for IP</strong>의 약자로, 차량 내부에서 부품들끼리 "서비스"를 제공하고 요청하는 방식으로 통신합니다.</p>
+  <p>이 프로젝트에서는 <code>vsomeip</code> 라이브러리 대신 <strong>와이어 프로토콜(바이트 형식)을 직접 구현</strong>했습니다. 그래서 Wireshark로 캡처하면 실제 차량 통신과 똑같이 보입니다.</p>
+
+  <div class="tip">
+    <strong>💡 초보자 알아두기</strong>
+    vsomeip은 독일 자동차 회사들이 실제로 쓰는 C++ 라이브러리입니다. 이 프로젝트는 라이브러리를 "쓰는 것"이 아니라, 라이브러리가 보내는 "바이트를 직접 만드는 것"을 증명합니다. 면접에서 이것이 핵심 차별점입니다.
+  </div>
+
+  <h3>CAN-FD란?</h3>
+  <p>CAN은 차량의 오래된 통신 버스이고, CAN-FD는 더 빠르게(최대 2Mbps) 더 많은 데이터를 보내는 개선 버전입니다. 이 프로젝트에서는 졸음 경고를 CAN-FD로 보냅니다.</p>
+
+  <h3>Safe State란?</h3>
+  <p>차량에서 CPU가 멈추거나 오류가 나면 <strong>안전한 상태</strong>로 진입해야 합니다. 이 프로젝트에서는 MPU(두뇌)가 멈추면 MCU(실시간 제어기)가 100ms 안에:</p>
+  <ol style="padding-left: 20px; margin: 8px 0;">
+    <li>CAN으로 경고 프레임을 보냄</li>
+    <li>LED를 빠르게 깜빡임</li>
+    <li>Watchdog를 유지하여 리셋되지 않음 (의도적 안전 상태)</li>
+  </ol>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <h2>3. 환경 준비</h2>
+
+  <h3>필요한 것</h3>
+  <ul style="padding-left: 20px; margin-bottom: 16px;">
+    <li><strong>PC</strong>: Windows / Mac / Linux 아무거나</li>
+    <li><strong>Python 3.10+</strong> (<a href="https://python.org">python.org</a>에서 설치)</li>
+    <li><strong>Git</strong> (<a href="https://git-scm.com">git-scm.com</a>에서 설치)</li>
+  </ul>
+
+  <h3><span class="step">1</span> 프로젝트 클론</h3>
+<pre><code>git clone https://github.com/YOUR_ID/sdv-zone-controller.git
+cd sdv-zone-controller</code></pre>
+
+  <h3><span class="step">2</span> Python 패키지 설치</h3>
+<pre><code>pip install -r docker/requirements.txt</code></pre>
+  <div class="tip">
+    <strong>💡 Windows에서 <code>pyserial</code> 설치 오류 시</code>
+    <code>pip install pyserial==3.5</code>로 따로 설치하세요. UART 전송은 실보드에서만 사용되므로, PC 시뮬레이션에서는 꼭 필요하지 않습니다.
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <h2>4. PC 시뮬레이션으로 첫 실행</h2>
+  <p>하드웨어 없이 PC만으로 SOME/IP 패킷이 어떻게 생성되는지 확인할 수 있습니다.</p>
+
+  <h3><span class="step">1</span> 트리거 테스트로 SOME/IP 패킷 보내기</h3>
+<pre><code>python mpu/ai/trigger_test.py --transport udp --level 85</code></pre>
+  <p>출력 예시:</p>
+<pre><code>[TEST] SOME/IP Notify sent: level=85 (24 bytes)
+       hex: 12 34 80 01 00 00 00 09 00 01 00 01 01 01 02 00 55 00 00 00 00 00 00 00
+       Wireshark filter: udp.port==30490 && someip</code></pre>
+
+  <div class="tip">
+    <strong>💡 이 바이트를 이해합시다</strong>
+    <ul style="padding-left: 18px; margin-top: 6px;">
+      <li><code>12 34</code> = Service ID (서비스 식별자)</li>
+      <li><code>80 01</code> = Event ID (졸음 알림 이벤트)</li>
+      <li><code>00 00 00 09</code> = Length (패킷 길이 = 9바이트)</li>
+      <li><code>55</code> = 졸음 레벨 (85% = 0x55)</li>
+      <li>나머지 = 패딩 (8바이트 정렬 맞추기)</li>
+    </ul>
+  </div>
+
+  <h3><span class="step">2</span> Heartbeat 전송</h3>
+<pre><code>python mpu/ai/trigger_test.py --transport udp --heartbeat</code></pre>
+  <p>50ms마다 Heartbeat 패킷(Event ID <code>0x8002</code>)이 전송됩니다. <code>Ctrl+C</code>로 중지.</p>
+
+  <h3><span class="step">3</span> Wireshark로 확인 (선택)</h3>
+  <p><a href="https://www.wireshark.org">Wireshark</a>를 설치하고, UDP 포트 30490을 캡처하면 SOME/IP 패킷이 보입니다.</p>
+<pre><code># Wireshark 필터
+udp.port == 30490</code></pre>
+
+  <h3><span class="step">4</span> 유닛 테스트 실행</h3>
+<pre><code>pip install pytest
+python -m pytest mpu/tests/ -v</code></pre>
+  <p>5개 테스트가 통과하면 프로토콜 구현이 올바릅니다.</p>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <h2>5. 코드 한 줄씩 이해하기</h2>
+
+  <h3>📁 프로젝트 구조</h3>
+<pre><code>sdv-zone-controller/
+├── MCU/                    ← STM32 Zephyr 앱 (C++)
+│   ├── src/
+│   │   ├── main.cpp            ← 메인: 스레드 생성 + 초기화
+│   │   ├── someip_service.cpp  ← SOME/IP 수신 (UART/UDP)
+│   │   ├── can_gateway.cpp     ← CAN-FD 전송 + CRC8
+│   │   └── safety.cpp          ← Safe State + Watchdog
+│   ├── boards/              ← Zephyr 보드 오버레이
+│   ├── CMakeLists.txt       ← Zephyr 빌드 설정
+│   ├── Kconfig              ← 빌드 옵션
+│   └── prj.conf             ← Zephyr 프로젝트 설정
+├── mpu/                    ← Python MPU 앱
+│   ├── someip/
+│   │   ├── protocol.py         ← SOME/IP 패킷 생성/파싱
+│   │   ├── transport.py        ← 전송 계층 (UDP/UART)
+│   │   └── client.py           ← 간편 전송 API
+│   ├── ai/
+│   │   ├── drowsiness.py       ← 졸음 감지 메인 (AI + Heartbeat)
+│   │   └── trigger_test.py     ← 테스트 트리거
+│   └── tests/
+│       └── test_someip_protocol.py ← 유닛 테스트
+├── docker/                 ← Docker 설정
+├── wireshark/              ← 캡처 산출물
+├── docs/                   ← 문서 + 시뮬레이션 로그
+└── .github/workflows/      ← CI 파이프라인</code></pre>
+
+  <h3>🔍 protocol.py — SOME/IP 패킷은 어떻게 만들어지나?</h3>
+<pre><code># mpu/someip/protocol.py (핵심 부분 발췌)
+
+def build_packet(event_id: int, payload: bytes, session_id: int = 1) -> bytes:
+    length = len(payload) + 8  # length = payload + 8 (SOME/IP 규칙)
+    header = struct.pack(
+        "!HHIHHBBBB",         # 빅엔디안, 16바이트
+        SERVICE_ID,            # 0x1234
+        event_id,              # 0x8001(졸음) 또는 0x8002(heartbeat)
+        length,                # payload 길이 + 8
+        0x0001,                # client_id
+        session_id,            # 세션 번호
+        0x01, 0x01, 0x02, 0x00 # 프로토콜/인터페이스/메시지타입/리턴코드
+    )
+    packet = header + payload
+    pad = (8 - (len(packet) % 8)) % 8  # 8바이트 정렬 패딩
+    if pad:
+        packet += b"\x00" * pad
+    return packet</code></pre>
+
+  <h3>🔍 safety.cpp — MPU가 멈추면 어떻게 하나?</h3>
+<pre><code>// MCU/src/safety.cpp (핵심 로직)
+
+static void safety_timeout(struct k_timer *timer) {
+    if (!safe_state) {
+        // MPU에서 heartbeat가 안 왔다 → Safe State 진입!
+        enter_safe_state();
+    } else {
+        // 이미 Safe State → 안전 동작 반복
+        can_send_warning(can_dev);    // CAN 경고 프레임 (level=0xFF)
+        gpio_pin_toggle_dt(led);     // LED 빠른 점멸
+        wdt_feed(wdt, 0);            // Watchdog 유지 (리셋 금지)
+    }
+}
+
+void safety_kick_watchdog(void) {
+    wdt_feed(wdt, 0);                // Watchdog 리셋
+    // heartbeat가 복구되면 Safe State 해제
+    if (safe_state) {
+        safe_state = false;          // NORMAL로 복귀
+    }
+}</code></pre>
+
+  <div class="diagram">
+    <pre>
+정상 동작 흐름:
+MPU (50ms heartbeat) ──SOME/IP──► MCU ──kick──► Watchdog 리셋
+                                                  ↓ (100ms 내 heartbeat 없으면)
+                                              Safe State 진입
+                                                  ↓
+                                          CAN 경고 + LED 점멸 + Watchdog 유지</pre>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <h2>6. 실보드(UNO Q)에서 실행하기</h2>
+  <p>하드웨어가 있다면 다음 단계로 진행합니다.</p>
+
+  <h3><span class="step">1</span> MCU 플래시 (Zephyr 빌드)</h3>
+<pre><code># Zephyr SDK + west 필요
+west build -b arduino_uno_q MCU
+west flash</code></pre>
+
+  <h3><span class="step">2</span> MPU 실행 (UART 터널)</h3>
+<pre><code># 실보드는 UART가 기본값 (별도 --transport 지정 불필요)
+python mpu/ai/drowsiness.py
+
+# 또는 명시적으로
+python mpu/ai/drowsiness.py --transport uart --uart-port /dev/ttyS0</code></pre>
+
+  <h3><span class="step">3</span> Docker로 실행 (선택)</h3>
+<pre><code># 실보드 UART 사용 시 환경변수 설정
+export SOMEIP_TRANSPORT=uart
+export SOMEIP_UART_PORT=/dev/ttyS0
+
+docker compose -f docker/docker-compose.yml up --build</code></pre>
+
+  <div class="warn">
+    <strong>⚠️ 실보드 주의사항</strong>
+    <ul style="padding-left: 18px; margin-top: 6px;">
+      <li>UART 포트 경로는 보드마다 다릅니다. <code>dmesg | grep tty</code>로 확인하세요.</li>
+      <li>CAN-FD 트랜시버 모듈이 없다면 루프백으로 테스트하세요.</li>
+      <li>현재 실보드 검증은 진행 중입니다. PC 시뮬레이션이 더 안정적입니다.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <h2>7. 문제 해결 (FAQ)</h2>
+
+  <table>
+    <tr><th>문제</th><th>원인</th><th>해결</th></tr>
+    <tr>
+      <td><code>ModuleNotFoundError: No module named 'cv2'</code></td>
+      <td>OpenCV 미설치</td>
+      <td><code>pip install opencv-python==4.9.0.80</code></td>
+    </tr>
+    <tr>
+      <td><code>pyserial not installed</code></td>
+      <td>UART 전송에 pyserial 필요</td>
+      <td><code>pip install pyserial==3.5</code><br>PC 시뮬레이션에서는 <code>--transport udp</code> 사용</td>
+    </tr>
+    <tr>
+      <td><code>Address already in use</code></td>
+      <td>포트 30490이 이미 사용 중</td>
+      <td>이전 테스트 프로세스 종료 후 재시도</td>
+    </tr>
+    <tr>
+      <td>pytest에서 0개 테스트 실행</td>
+      <td>테스트 디렉토리 경로 오류</td>
+      <td><code>python -m pytest mpu/tests/ -v</code> (정확한 경로 지정)</td>
+    </tr>
+    <tr>
+      <td>카메라 감지 안 됨</td>
+      <td>USB 카메라 미연결</td>
+      <td>정상 — 시뮬레이션 모드로 자동 전환됨</td>
+    </tr>
+  </table>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <h2>8. 면접에서 활용하는 법</h2>
+
+  <h3>면접관이 묻는 질문과 답변 예시</h3>
+
+  <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+    <p><strong>Q: "이 프로젝트에서 어떤 역할을 했나요?"</strong></p>
+    <p>A: "독일 SDV 아키텍처(HPC + Zone ECU)를 €68 보드로 재현했습니다. MPU에서 Python으로 SOME/IP 와이어 포맷을 직접 생성하고, MCU에서는 Zephyr 위에서 경량 파서로 수신하여 CAN-FD로 전송하는 전체 파이프라인을 구현했습니다."</p>
+  </div>
+
+  <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+    <p><strong>Q: "vsomeip를 왜 안 썼나요?"</strong></p>
+    <p>A: "MCU(Zephyr)에서는 vsomeip의 의존성(Boost, POSIX 소켓 등)이 무거워서, 대신 경량 SOME/IP 파서를 직접 구현했습니다. 와이어 프로토콜 포맷은 vsomeip과 100% 호환되어 Wireshark에서 동일하게 해석됩니다. 이 과정에서 SOME/IP 헤더 구조와 길이 계산을 깊이 이해하게 되었습니다."</p>
+  </div>
+
+  <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+    <p><strong>Q: "안전 설계는 어떻게 했나요?"</strong></p>
+    <p>A: "ISO 26262 Safe State 패턴을 적용했습니다. MPU가 50ms마다 heartbeat를 보내고, MCU에서 100ms 내 미수신 시 Safe State로 진입합니다. 진입 시 CAN 경고 프레임 송신, LED 점멸, 그리고 의도적으로 Watchdog를 유지하여 리셋이 아닌 안전 상태를 유지합니다."</p>
+  </div>
+
+  <div class="tip">
+    <strong>💡 면접 팁</strong>
+    <ul style="padding-left: 18px; margin-top: 6px;">
+      <li>"이 프로젝트는 ~를 증명하기 위해 만들었습니다"라고 <strong>목적</strong>을 먼저 말하세요.</li>
+      <li>기술적 한계(예: "실보드 검증 진행 중")를 솔직히 말하면 신뢰가 올라갑니다.</li>
+      <li>"Phase 2에서는 Yocto로 이식할 계획"이라고 말하면 다음 단계에 대한 이해도를 보여줍니다.</li>
+      <li> 독일어로 간단히 인사하면 플러스 점수: <em>"Gute Frage!"</em></li>
+    </ul>
+  </div>
+
+  <h3>이력서에 쓰기</h3>
+<pre><code>프로젝트: Heterogeneous SDV Zone Controller (QRB2210 + STM32U585)
+- SOME/IP wire protocol 직접 구현 (vsomeip 호환, Wireshark 검증)
+- Zephyr RTOS 기반 CAN-FD 게이트웨이 + E2E CRC8
+- ISO 26262 Safe State: 100ms heartbeat 타임아웃 → CAN 경고 + LED
+- Python (OpenCV, SOME/IP raw-socket) + C++ (Zephyr, CAN-FD)
+- Docker 기반 MPU 컨테이너 + GitHub Actions CI 파이프라인</code></pre>
+</section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>SDV Zone Controller Beginner's Guide | 2026</p>
+    <p>이 가이드는 프로젝트의 README.md, SETUP_GUIDE_KR.md, interview_qa.md를 기반으로 작성되었습니다.</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,58 @@
+# kas - Yocto 빌드 자동화 (선택)
+# 사용법: kas build kas.yml (kas 설치 시)
+# kas 없이도 Dockerfile.yocto + build-yocto.sh로 빌드 가능
+
+header:
+  version: 14
+  includes:
+    - kas/kas-poky.yml
+
+machine: qemuarm64
+distro: poky
+target: sdv-hpc-image
+
+repos:
+  poky:
+    url: https://git.yoctoproject.org/poky
+    branch: kirkstone
+    layers:
+      meta:
+      meta-poky:
+      meta-yocto-bsp:
+
+  meta-openembedded:
+    url: https://git.openembedded.org/meta-openembedded
+    branch: kirkstone
+    layers:
+      meta-oe:
+      meta-networking:
+      meta-python:
+
+  meta-sdv:
+    path: meta-sdv
+    layers:
+      meta-sdv:
+
+bblayers_conf_header:
+  standard: |
+    POKY_BBLAYERS_CONF_VERSION = "2"
+    BBPATH = "${TOPDIR}"
+    BBFILES ?= ""
+
+local_conf_header:
+  standard: |
+    CONF_VERSION = "2"
+    SSTATE_DIR = "${TOPDIR}/sstate-cache"
+    DL_DIR = "${TOPDIR}/downloads"
+    BB_NUMBER_THREADS = "8"
+    PARALLEL_MAKE = "-j 8"
+    MACHINE = "qemuarm64"
+    DISTRO = "poky"
+    PACKAGE_CLASSES = "package_rpm"
+    EXTRA_IMAGE_FEATURES = "debug-tweaks"
+    DISTRO_FEATURES:append = " systemd virtualization"
+    VIRTUAL-RUNTIME_init_manager = "systemd"
+
+  docker: |
+    IMAGE_INSTALL:append = " docker-moby docker-compose"
+    IMAGE_INSTALL:append = " vsomeip sdv-mpu"

@@ -1,0 +1,40 @@
+# local.conf for SDV HPC - Kirkstone
+# Copy to build/conf/local.conf and adjust MACHINE
+
+MACHINE ??= "qemuarm64"
+# 실제 보드:
+# MACHINE = "raspberrypi4-64"  # RPi4 대체
+# MACHINE = "qcom-arm64"       # QRB2210 (별도 BSP 필요)
+
+DISTRO ?= "poky"
+PACKAGE_CLASSES ?= "package_rpm"
+
+# 병렬 빌드 (호스트 CPU 코어 수에 맞게 조정)
+BB_NUMBER_THREADS ?= "8"
+PARALLEL_MAKE ?= "-j 8"
+
+# sstate 캐시 (Docker 볼륨으로 유지 - 재빌드 10분)
+SSTATE_DIR ?= "${TOPDIR}/sstate-cache"
+DL_DIR ?= "${TOPDIR}/downloads"
+
+# 독일 자동차: 재현 가능한 빌드 (Reproducible)
+INHERIT += "rm_work"
+
+# Docker 필요
+DISTRO_FEATURES:append = " systemd virtualization"
+VIRTUAL-RUNTIME_init_manager = "systemd"
+
+# Lizenz
+ACCEPT_FSL_EULA = "1"
+
+# Timezone
+DEFAULT_TIMEZONE = "Europe/Berlin"
+
+# 이미지
+EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
+
+# vsomeip는 boost 필요
+IMAGE_INSTALL:append = " boost"
+
+# QEMU 메모리 (HPC는 2GB)
+QB_MEM = "-m 2048"

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDV 프로토타입 학습 로드맵 및 리소스</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f4f7f6; }
+        .container { max-width: 900px; margin: auto; background: #fff; padding: 30px 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h1, h2 { color: #2c3e50; }
+        h1 { font-size: 2em; border-bottom: 2px solid #007bff; padding-bottom: 10px; text-align: center; }
+        h2 { font-size: 1.5em; margin-top: 30px; }
+        .resource-section { margin-bottom: 30px; }
+        .resource-item { margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; }
+        .category-tag { font-weight: bold; color: #007bff; }
+        .resource-link { color: #007bff; text-decoration: none; }
+        .resource-link:hover { text-decoration: underline; }
+        .warning { background-color: #fffbe6; border-left: 5px solid #faad14; padding: 15px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SDV 프로젝트 학습 로드맵</h1>
+        <p>본 프로젝트는 단순 코딩이 아닌, 실제 자동차 전장 SW의 구조를 이해하는 것이 목표입니다. 아래 자료들을 통해 기술적 배경을 탄탄히 다지세요.</p>
+
+        <div class="warning">
+            <strong>학습 전략:</strong> 이 프로젝트는 vsomeip 라이브러리를 직접 쓰는 대신 와이어 프로토콜을 구현했습니다. 라이브러리 공식 문서는 참고용으로만 보시고, <strong>통신 프로토콜의 기본 원리</strong> 학습에 집중하십시오.
+        </div>
+
+        <div class="resource-section">
+            <h2>1. SDV 및 자동차 소프트웨어 기초</h2>
+            <div class="resource-item">
+                <span class="category-tag">[YouTube]</span> <strong>SDV/Zone Architecture 소개</strong>: "Software Defined Vehicle Basics" 또는 "Zonal Architecture in Automotive" 검색. (현업 아키텍처의 흐름 파악)
+                <br><a class="resource-link" href="https://www.youtube.com/results?search_query=software+defined+vehicle+basics" target="_blank" rel="noopener">🔍 YouTube: Software Defined Vehicle 검색</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://www.youtube.com/results?search_query=zonal+architecture+automotive" target="_blank" rel="noopener">🔍 YouTube: Zonal Architecture 검색</a>
+            </div>
+            <div class="resource-item">
+                <span class="category-tag">[Docs]</span> <strong>Vector Knowledge Base</strong>: 전장 통신(CAN, CAN-FD, SOME/IP)의 업계 표준 설명. (가장 신뢰할 수 있는 자료)
+                <br><a class="resource-link" href="https://www.vector.com/int/en/know-how/" target="_blank" rel="noopener">🔗 Vector Know-How 바로가기</a>
+            </div>
+        </div>
+
+        <div class="resource-section">
+            <h2>2. 마이크로컨트롤러 및 RTOS (MCU)</h2>
+            <div class="resource-item">
+                <span class="category-tag">[Docs]</span> <strong>Zephyr Project Documentation</strong>: 공식 문서를 통해 Thread, Timer, Watchdog, GPIO API 사용법 학습.
+                <br><a class="resource-link" href="https://docs.zephyrproject.org/latest/" target="_blank" rel="noopener">🔗 Zephyr 공식 문서 바로가기</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://docs.zephyrproject.org/latest/reference/peripherals/can.html" target="_blank" rel="noopener">📄 CAN API 레퍼런스</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://docs.zephyrproject.org/latest/reference/peripherals/watchdog.html" target="_blank" rel="noopener">📄 Watchdog API 레퍼런스</a>
+            </div>
+            <div class="resource-item">
+                <span class="category-tag">[YouTube]</span> <strong>STM32 실무 강의</strong>: STM32U5 시리즈의 UART/CAN-FD 설정 강의. (하드웨어 HAL/LL 이해)
+                <br><a class="resource-link" href="https://www.youtube.com/results?search_query=STM32+UART+CAN-FD+tutorial" target="_blank" rel="noopener">🔍 YouTube: STM32 UART/CAN-FD 검색</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://www.st.com/en/microcontrollers-microprocessors/stm32u5-series.html" target="_blank" rel="noopener">🔗 ST 공식 STM32U5 페이지</a>
+            </div>
+        </div>
+
+        <div class="resource-section">
+            <h2>3. 임베디드 리눅스 및 AI (MPU)</h2>
+            <div class="resource-item">
+                <span class="category-tag">[Docs]</span> <strong>Docker 공식 문서</strong>: 임베디드 장치에서 Docker 컨테이너 실행 및 네트워크 모드 설정(host mode) 이해.
+                <br><a class="resource-link" href="https://docs.docker.com/" target="_blank" rel="noopener">🔗 Docker 공식 문서 바로가기</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://docs.docker.com/compose/" target="_blank" rel="noopener">📄 Docker Compose 가이드</a>
+            </div>
+            <div class="resource-item">
+                <span class="category-tag">[YouTube]</span> <strong>TensorFlow Lite Micro / OpenCV</strong>: 엣지 기기에서 AI 추론을 돌리기 위한 초급 튜토리얼.
+                <br><a class="resource-link" href="https://www.tensorflow.org/lite/microcontrollers" target="_blank" rel="noopener">🔗 TensorFlow Lite Micro 공식 가이드</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://docs.opencv.org/" target="_blank" rel="noopener">🔗 OpenCV 공식 문서</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://www.youtube.com/results?search_query=tensorflow+lite+micro+beginner+tutorial" target="_blank" rel="noopener">🔍 YouTube: TFLite Micro 튜토리얼 검색</a>
+            </div>
+        </div>
+
+        <div class="resource-section">
+            <h2>4. 자동차 네트워크 및 통신 프로토콜</h2>
+            <div class="resource-item">
+                <span class="category-tag">[YouTube]</span> <strong>Wireshark을 활용한 네트워크 분석</strong>: 공식 문서 및 튜토리얼. (SOME/IP 패킷 분석을 위해 필수)
+                <br><a class="resource-link" href="https://www.wireshark.org/docs/" target="_blank" rel="noopener">🔗 Wireshark 공식 문서</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://www.youtube.com/results?search_query=wireshark+packet+analysis+tutorial" target="_blank" rel="noopener">🔍 YouTube: Wireshark 튜토리얼 검색</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://www.wireshark.org/docs/dfref/s/someip.html" target="_blank" rel="noopener">📄 SOME/IP Dissector 레퍼런스</a>
+            </div>
+            <div class="resource-item">
+                <span class="category-tag">[Docs]</span> <strong>COVESA/vsomeip GitHub</strong>: vsomeip의 JSON 설정 파일 구조와 서비스 디스커버리(SD) 개념 확인.
+                <br><a class="resource-link" href="https://github.com/COVESA/vsomeip" target="_blank" rel="noopener">🔗 vsomeip GitHub 저장소</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://github.com/COVESA/vsomeip/blob/master/README.md" target="_blank" rel="noopener">📄 vsomeip README</a>
+            </div>
+        </div>
+
+        <div class="resource-section">
+            <h2>5. 기능 안전 (ISO 26262) 기초</h2>
+            <div class="resource-item">
+                <span class="category-tag">[YouTube]</span> <strong>Functional Safety (ISO 26262) Overview</strong>: ASIL 등급, 안전 상태(Safe State)에 대한 기초 강의.
+                <br><a class="resource-link" href="https://www.youtube.com/results?search_query=ISO+26262+functional+safety+overview" target="_blank" rel="noopener">🔍 YouTube: ISO 26262 검색</a>
+                &nbsp;|&nbsp;
+                <a class="resource-link" href="https://en.wikipedia.org/wiki/ISO_26262" target="_blank" rel="noopener">📄 Wikipedia: ISO 26262</a>
+            </div>
+        </div>
+
+        <p><em>이 로드맵은 당신의 기술적 깊이를 더해줄 것입니다. 프로젝트 코드와 이 자료들을 연결 지어 생각하는 연습을 하세요.</em></p>
+    </div>
+</body>
+</html>

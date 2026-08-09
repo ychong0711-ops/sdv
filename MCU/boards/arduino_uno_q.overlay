@@ -1,0 +1,21 @@
+/*
+ * Arduino UNO Q (STM32U585) 앱 오버레이
+ *
+ * - CAN: on-SoC FDCAN1을 zephyr,canbus로 노출 (보드 기본 DTS에는 없음).
+ *   주의: STM32U585의 FDCAN 핀 mux는 실보드 하드웨어 확인 필요.
+ *   (UNO Q에 CAN 트랜시버가 노출되지 않으면 MCP2517FD(SPI) 드라이버로 전환 검토)
+ * - SOME/IP UART 터널: lpuart1 (보드에서 QRB2210 MPU로 연결된 UART, 115200)
+ */
+/ {
+    chosen {
+        zephyr,canbus = &fdcan1;
+    };
+
+    aliases {
+        someip-uart = &lpuart1;
+    };
+};
+
+&fdcan1 {
+    status = "okay";
+};

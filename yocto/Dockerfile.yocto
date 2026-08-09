@@ -1,0 +1,63 @@
+# Yocto Kirkstone (4.0 LTS) Build Host - SDV HPC Image
+# Host: Ubuntu 22.04 LTS - Yocto Project 공식 권장
+# Target: qemuarm64 (UNO Q QRB2210 Cortex-A53 에뮬레이션) + raspberrypi4-64 (실보드 대체)
+# Build: Debian 기반 Phase 1 -> Yocto 기반 Phase 2 이식 증명
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+# 1. Yocto 필수 패키지 (Yocto Manual 3.4)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gawk wget git diffstat unzip texinfo gcc build-essential chrpath socat cpio \
+    python3 python3-pip python3-pexpect xz-utils debianutils iputils-ping \
+    python3-git python3-jinja2 libegl1-mesa libsdl1.2-dev pylint xterm \
+    python3-subunit mesa-common-dev zstd liblz4-tool file locales \
+    curl bash sudo vim nano htop \
+    # 추가: Docker 내부에서 Yocto 빌드 시 필요
+    repo rsync bc lzop u-boot-tools mtd-utils \
+    && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. yocto 사용자 생성 (root로 빌드 금지 - Yocto 정책)
+RUN useradd -m -s /bin/bash yocto && echo "yocto:yocto" | chpasswd && adduser yocto sudo \
+    && echo "yocto ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER yocto
+WORKDIR /home/yocto
+
+# 3. Git 설정
+RUN git config --global user.email "sdv@yocto.local" && \
+    git config --global user.name "SDV Builder" && \
+    git config --global color.ui false && \
+    git config --global --add safe.directory '*'
+
+# 4. Poky Kirkstone (4.0 LTS) + 의존 레이어 클론
+#    Kirkstone은 2026년까지 LTS - 독일 자동차가 가장 많이 쓰는 버전
+RUN mkdir -p /home/yocto/yocto && cd /home/yocto/yocto && \
+    git clone --depth 1 --branch kirkstone https://git.yoctoproject.org/poky && \
+    git clone --depth 1 --branch kirkstone https://git.openembedded.org/meta-openembedded && \
+    git clone --depth 1 --branch kirkstone https://github.com/agherzan/meta-raspberrypi.git || true && \
+    git clone --depth 1 --branch kirkstone https://git.yoctoproject.org/meta-virtualization || true
+
+# 5. meta-sdv 마운트 포인트 (호스트에서 볼륨 마운트)
+#    빌드 시: docker run -v $(pwd)/yocto/meta-sdv:/home/yocto/yocto/meta-sdv ...
+
+# 6. 빌드 디렉토리 (yocto 사용자 소유 — root 소유면 oe-init-build-env가 실패)
+#    주의: VOLUME으로 선언하면 이미지 빌드 시 root 소유 디렉토리가 생성되어
+#    yocto 사용자가 build/conf를 쓸 수 없게 됨. 따라서 VOLUME 대신 직접 생성.
+RUN mkdir -p /home/yocto/yocto/build/conf \
+             /home/yocto/yocto/build/sstate-cache \
+             /home/yocto/yocto/build/downloads \
+    && chown -R yocto:yocto /home/yocto/yocto/build
+
+# 7. Entrypoint: 빌드 환경 자동 설정
+COPY --chown=yocto:yocto scripts/build-yocto.sh /home/yocto/build-yocto.sh
+COPY --chown=yocto:yocto scripts/entrypoint-yocto.sh /home/yocto/entrypoint.sh
+RUN chmod +x /home/yocto/*.sh
+
+WORKDIR /home/yocto/yocto
+ENTRYPOINT ["/home/yocto/entrypoint.sh"]
+CMD ["bash"]

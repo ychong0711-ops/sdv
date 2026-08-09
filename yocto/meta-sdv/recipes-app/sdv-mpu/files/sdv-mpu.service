@@ -1,0 +1,18 @@
+[Unit]
+Description=SDV MPU - Driver Monitoring AI + SOME/IP Client
+After=vsomeipd.service network.target
+Requires=vsomeipd.service
+Wants=network.target
+
+[Service]
+Type=simple
+Environment=VSOMEIP_CONFIGURATION=/etc/vsomeip/vsomeip.json
+Environment=VSOMEIP_APPLICATION_NAME=sdv-mpu-client
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /usr/bin/sdv-mpu/drowsiness.py
+Restart=on-failure
+RestartSec=3
+# HPC에서는 컨테이너로도 실행 가능: ExecStart=/usr/bin/docker run sdv-mpu
+
+[Install]
+WantedBy=multi-user.target

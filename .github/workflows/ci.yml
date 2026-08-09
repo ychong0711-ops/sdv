@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test deps
+        run: python -m pip install pytest
+
+      - name: Run unit tests
+        run: python -m pytest mpu/tests/ -v
+
+      - name: Syntax check all Python
+        run: |
+          set -e
+          for f in $(git ls-files '*.py'); do
+            python -m py_compile "$f"
+          done
+
+  cppcheck-misra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+
+      # 결과는 첫 push 후 갱신. "MISRA 0 violations" 주장은 이 job이 통과해야만 사용할 것.
+      - name: MISRA-C 2012 static analysis (MCU)
+        run: |
+          cppcheck --enable=warning,style,performance,portability \
+                   --addon=misra \
+                   --suppress=missingIncludeSystem \
+                   --inline-suppr \
+                   --error-exitcode=1 \
+                   MCU/src
+
+  mcu-build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/zephyrproject-rtos/zephyr-build:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 보드 지원이 포함된 Zephyr 릴리스 확인 후 --mr을 태그로 고정 권장.
+      # 현재는 upstream main의 arduino_uno_q 보드 정의 사용.
+      - name: Init Zephyr workspace
+        run: |
+          west init -m https://github.com/zephyrproject-rtos/zephyr --mr main zephyrproject
+          cd zephyrproject
+          west update
+
+      - name: Build MCU app
+        run: |
+          cd zephyrproject
+          west build -b arduino_uno_q ../MCU
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Dockerfile의 빌드 컨텍스트는 repo root (docker/docker-compose.yml의 context: .. 와 일치)
+      - name: Build MPU Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false
+          tags: sdv-mpu:ci

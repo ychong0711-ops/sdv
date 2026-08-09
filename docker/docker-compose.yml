@@ -1,0 +1,43 @@
+# Heterogeneous SDV - MPU Container Orchestration
+# UNO Q MPU (Debian) 에서 실행: docker compose up --build
+version: '3.8'
+
+services:
+  sdv-mpu:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: sdv-mpu
+    hostname: sdv-mpu
+    network_mode: host  # SOME/IP는 host 네트워크 필요 (multicast SD)
+    privileged: true    # CAN, 카메라 접근
+    volumes:
+      - ../mpu:/app/mpu:ro
+      - ../wireshark:/app/wireshark
+      - /dev:/dev
+    environment:
+      - PYTHONUNBUFFERED=1
+      # PC 시뮬레이션: UDP 30490 (실보드에서는 SOMEIP_TRANSPORT=uart로 덮어씀)
+      - SOMEIP_TRANSPORT=udp
+      - SOMEIP_MCU_IP=127.0.0.1
+    devices:
+      - /dev/video0:/dev/video0  # USB Camera (없으면 trigger_test.py로 대체)
+    command: bash scripts/entrypoint.sh
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "drowsiness.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Wireshark/tshark 캡처 전용 컨테이너 (옵션)
+  # 사용법: docker compose --profile debug up tshark
+  tshark:
+    image: debian:bookworm-slim
+    container_name: sdv-tshark
+    network_mode: host
+    command: bash -c "apt-get update && apt-get install -y tshark && tshark -i any -f 'udp port 30490 or udp port 30491' -w /app/wireshark/live_capture.pcapng"
+    volumes:
+      - ../wireshark:/app/wireshark
+    profiles:
+      - debug

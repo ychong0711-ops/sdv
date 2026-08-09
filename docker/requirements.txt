@@ -1,0 +1,10 @@
+# MPU AI + SOME/IP Python
+opencv-python==4.9.0.80
+numpy==1.26.4
+tflite-runtime==2.14.0
+pyserial==3.5
+# vsomeip Python binding (또는 SOME/IP 순수 Python 구현 대체)
+# 실제 빌드 시: pip install vsomeip-python (COVESA)
+# 없으면 mpu/someip/client.py의 socket 기반 경량 SOME/IP 사용
+pillow==10.2.0
+scipy==1.12.0

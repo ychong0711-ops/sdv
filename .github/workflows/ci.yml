@@ -97,3 +97,27 @@ jobs:
           file: docker/Dockerfile
           push: false
           tags: sdv-mpu:ci
+
+  pc-sim-integration:
+    # PC 시뮬레이션 통합 검증: 실제 MPU 코드(Python SdServer/client)와
+    # 실제 MCU 프로토콜 코드(someip_sd.cpp)를 UDP 멀티캐스트로 상호 통신시켜
+    # SD 흐름(Find -> Offer -> Subscribe)과 이벤트(Notify/Heartbeat)를 검증.
+    # ubuntu 러너는 멀티캐스트 루프백이 정상 동작하고 백신 간섭이 없어
+    # 로컬 Windows(Bitdefender) 대신 CI에서 영구 검증한다.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile MCU SD host simulator (real someip_sd.cpp)
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -IMCU/src \
+              MCU/tests/sd_host_sim.cpp MCU/src/someip_sd.cpp \
+              -o /tmp/sd_host_sim
+
+      - name: Run PC simulation integration test
+        run: python3 scripts/pc_sim_test.py /tmp/sd_host_sim

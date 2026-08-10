@@ -24,3 +24,6 @@ yocto/build/hashserve.sock
 Thumbs.db
 .vscode/
 .idea/
+
+# ===== 로컬 빌드 산출물 (PC 시뮬레이션 시뮬레이터 등) =====
+build/

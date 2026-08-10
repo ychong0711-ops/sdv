@@ -32,8 +32,10 @@ import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 
 from mpu.someip import client as someip_client  # noqa: E402
+from mpu.someip import sd as sd_module  # noqa: E402
 from mpu.someip.protocol import (  # noqa: E402
     SERVICE_ID,
+    INSTANCE_ID,
     EVENT_NOTIFY,
     SOMEIP_PORT,
 )
@@ -101,6 +103,11 @@ def main():
         default=os.environ.get("SOMEIP_UART_PORT", "/dev/ttyS0"),
         help="uart transport 전용 포트 (기본 /dev/ttyS0). env SOMEIP_UART_PORT",
     )
+    parser.add_argument(
+        "--sd",
+        action="store_true",
+        help="SOME/IP-SD OfferService 광고 활성화 (멀티캐스트 224.224.224.245:30490)",
+    )
     args = parser.parse_args()
 
     log.info("=== SDV MPU AI Started (QRB2210 + TFLite) ===")
@@ -108,6 +115,14 @@ def main():
         args.transport, host=args.dest, port=SOMEIP_PORT, uart_port=args.uart_port)
     log.info(f"SOME/IP target: {args.dest}:{SOMEIP_PORT} Service 0x{SERVICE_ID:04X} "
              f"Event 0x{EVENT_NOTIFY:04X} transport={args.transport}")
+
+    # SD OfferService 광고 (선택): 멀티캐스트로 서비스 존재 주기 광고
+    if args.sd:
+        sd_server = sd_module.SdServer(
+            SERVICE_ID, INSTANCE_ID, ip=args.dest, port=SOMEIP_PORT)
+        sd_server.start()
+        log.info(f"SD OfferService advertising started: 0x{SERVICE_ID:04X}/0x{INSTANCE_ID:04X} "
+                 f"via {sd_module.SD_MULTICAST}:{sd_module.SD_PORT}")
 
     # heartbeat는 항상 동작 (Safety)
     start_heartbeat_thread(transport)

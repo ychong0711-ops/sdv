@@ -48,6 +48,15 @@ jobs:
                    --error-exitcode=1 \
                    MCU/src
 
+      - name: MCU SOME/IP-SD host test (wire format vs Python)
+        # someip_sd.cpp 는 Zephyr 무의존 순수 C라 호스트에서 컴파일/실행 가능.
+        # Python(mpu/someip/sd.py, pytest 16건 검증) 생성 벡터와 바이트 단위 대조.
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -IMCU/src \
+              MCU/tests/test_someip_sd_host.cpp MCU/src/someip_sd.cpp \
+              -o /tmp/test_someip_sd
+          /tmp/test_someip_sd
+
   mcu-build:
     runs-on: ubuntu-latest
     container:

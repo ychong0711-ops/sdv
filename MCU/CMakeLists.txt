@@ -6,6 +6,7 @@ target_sources(app PRIVATE
     src/main.cpp
     src/can_gateway.cpp
     src/someip_service.cpp
+    src/someip_sd.cpp
     src/safety.cpp
 )
 

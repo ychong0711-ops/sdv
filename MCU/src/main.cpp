@@ -61,7 +61,14 @@ void someip_thread(void *, void *, void *) {
     someip_init(); // Offer Service 0x1234/0x5678
     someip_offer_service();
 
+    uint32_t last_find = 0;
     while (1) {
+        // SD 클라이언트: 2초마다 FindService 재전송 (프로바이더 재시작 대응)
+        if (k_uptime_get_32() - last_find >= 2000) {
+            someip_sd_send_find();
+            last_find = k_uptime_get_32();
+        }
+
         // SOME/IP 수신 대기 (blocking): Notify(0x8001) / Heartbeat(0x8002) 공통 진입점
         uint16_t event_id;
         uint8_t payload;

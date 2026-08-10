@@ -129,7 +129,7 @@ int someip_init(void) {
     addr.sin_family = AF_INET;
     addr.sin_port = htons(SOMEIP_PORT);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    if (zsock_bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+    if (zsock_bind(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) < 0) {
         LOG_ERR("SOME/IP bind failed");
         return -1;
     }
@@ -156,7 +156,7 @@ static int someip_udp_receive(uint16_t *event_id, uint8_t *payload) {
     struct timeval tv = {.tv_sec = 0, .tv_usec = 50000};
     zsock_setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-    int ret = zsock_recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*)&src, &len);
+    int ret = zsock_recvfrom(sock, buf, sizeof(buf), 0, reinterpret_cast<struct sockaddr *>(&src), &len);
     if (ret < (int)sizeof(struct someip_header) + 1) return -1;
 
     auto *hdr = reinterpret_cast<struct someip_header *>(buf);

@@ -35,7 +35,7 @@
 
 ## Q5: Was ist SOME/IP-SD? (SOME/IP-SD가 뭐냐)
 **A:**
-> Service Discovery (OfferService, FindService, SubscribeEventgroup) ist der Mechanismus, mit dem SOME/IP-Dienste dynamisch gefunden werden - das Herzstück für service-orientierte Architektur im Fahrzeug. In meinem Projekt ist SD **bewusst noch nicht** implementiert: Aktuell läuft die Kommunikation über direkte SOME/IP-Notify (0x8001) und Heartbeat (0x8002) im vsomeip-kompatiblen Wire-Format (UDP 30490). Der vsomeip-Routing-Manager (`vsomeipd`) läuft bereits im Yocto-Image - die SD-Aktivierung (OfferService/SubscribeEventgroup) ist der nächste Schritt, ich würde sie mit vsomeip-SD-API umsetzen. Das kommuniziere ich ehrlich statt es zu behaupten.
+> Service Discovery (OfferService, FindService, SubscribeEventgroup) ist der Mechanismus, mit dem SOME/IP-Dienste dynamisch gefunden werden - das Herzstück für service-orientierte Architektur im Fahrzeug. In meinem Projekt ist SD **implementiert**: Ich habe ein eigenes SD-Modul im vsomeip-kompatiblen Wire-Format geschrieben (`mpu/someip/sd.py`): SD-Header (0xFFFF/0x8100, Message-Type 0x02, Unicast-Flag 0x40), Service-Entries (FindService 0x00 / OfferService 0x01, StopOffer = TTL 0), SubscribeEventgroup (0x06) und IPv4-Endpoint-Option (0x04) - per Unit-Tests gegen die AUTOSAR-PRS-/vsomeip-Konvention verifiziert (Länge 20+16N+Σ(3+opt), TTL 0xFFFFFF, Session-Increment). Der `SdServer` sendet periodisch OfferService über Multicast (224.224.224.245:30490), `SdClient` macht FindService. Nebenläufig läuft weiter die direkte SOME/IP-Notify (0x8001)/Heartbeat (0x8002), und der vsomeip-Routing-Manager (`vsomeipd`) ist im Yocto-Image aktiv.
 
 ## Q6: Arduino ist doch Spielzeug! (아두이노는 장난감 아니냐)
 **A:**

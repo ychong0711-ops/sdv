@@ -263,7 +263,7 @@ int someip_sd_send_subscribe(void) {
     struct sockaddr_in dst = {0};
     dst.sin_family = AF_INET;
     dst.sin_port = htons(SOMEIP_PORT);
-    dst.sin_addr.s_addr = htonl(INADDR_LOOPBACK); // 프로바이더 = MPU (PC 시뮬레이션)
+    dst.sin_addr.s_addr = htonl(0x7F000001); // 127.0.0.1 = INADDR_LOOPBACK (Zephyr는 상수 미제공), 프로바이더 = MPU (PC 시뮬레이션)
     int ret = zsock_sendto(sock, buf, (size_t)pkt_len, 0,
                            reinterpret_cast<struct sockaddr *>(&dst), sizeof(dst));
     if (ret == pkt_len) {
